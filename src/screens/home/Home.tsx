@@ -10,7 +10,7 @@ import colors from '../../utils/styles/Colors';
 import NormalizeSize from '../../utils/fontScaler/NormalizeSize';
 import SvgIcon from '../../coponents/icons/Icons';
 
-const Home = () => {
+const Home = ({navigation}) => {
   const [showReactions, setShowReactions] = useState(false);
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -28,7 +28,7 @@ const Home = () => {
       <Text style={styles?.heading}>The Pink Pact</Text>
 
       <View style={styles?.searchContainer}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('FriendList')}>
           <SvgIcon name={'profileTab'} width={30} height={30} />
         </TouchableOpacity>
 

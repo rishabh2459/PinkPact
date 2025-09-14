@@ -16,6 +16,8 @@ import Community from '../screens/community/Community'
 import Notification from '../screens/notification/Notification'
 import RageRoom from '../screens/rageRoom/RageRoom'
 import Profile from '../screens/profile/Profile'
+import VisitProfile from '../screens/profile/visitProfile/VisitProfile'
+import FriendList from '../screens/friendList/FriendList'
 
 const Stack = createStackNavigator()
 const Tab = createBottomTabNavigator()
@@ -64,7 +66,7 @@ const AppTabs = () => (
         },
       })}>
     <Tab.Screen name="Home" component={Home} options={{ tabBarLabel: 'Home' }}/>
-    <Tab.Screen name="Community" component={Community} options={{ tabBarLabel: 'Community' }}/>
+    {/* <Tab.Screen name="Community" component={Community} options={{ tabBarLabel: 'Community' }}/> */}
     <Tab.Screen name="Notification" component={Notification} options={{ tabBarLabel: 'Notification' }}/>
     <Tab.Screen name="RageRoom" component={RageRoom} options={{ tabBarLabel: 'RageRoom' }}/>
     <Tab.Screen name="Profile" component={Profile} options={{ tabBarLabel: 'Profile' }}/>
@@ -76,6 +78,9 @@ const AppTabs = () => (
 const AppStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Tabs" component={AppTabs} />
+    <Stack.Screen name="VisitProfile" component={VisitProfile} />
+    <Stack.Screen name="FriendList" component={FriendList} />
+
   </Stack.Navigator>
 )
 

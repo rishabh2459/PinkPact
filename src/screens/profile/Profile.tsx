@@ -86,7 +86,7 @@ export default function EditProfile({ navigation }: any) {
           >
             <MaterialIcons name="arrow-back-ios-new" size={22} color={colors?.white} />
           </TouchableOpacity>
-          <View
+          <TouchableOpacity
             style={{
               position: 'relative',
               backgroundColor: 'white',
@@ -96,9 +96,11 @@ export default function EditProfile({ navigation }: any) {
               justifyContent: 'center',
               alignItems: 'center',
             }}
+            onPress={() => navigation.navigate('VisitProfile')}
+
           >
             <MaterialIcons name="settings" size={22} color="#000" />
-          </View>
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.title}>Edit profile</Text>

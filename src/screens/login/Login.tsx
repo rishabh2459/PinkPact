@@ -21,18 +21,20 @@ import { loginUser } from '../../coponents/redux/features/auth/authSlice';
 import { useAuth } from '../../hooks/auth/AuthContext';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import qs from 'qs';
 // import Icon from 'react-native-vector-icons/Ionicons'; // eye icon
 
 const { width } = Dimensions.get('window');
 
 const LoginScreen = () => {
   const navigation = useNavigation();
-   const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useDispatch<AppDispatch>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secure, setSecure] = useState(true);
   const [loading, setLoading] = useState(false);
- const { login } = useAuth();
+  const [error, setError] = useState('');
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -40,42 +42,39 @@ const LoginScreen = () => {
       return;
     }
 
-          const token = "nadnajknckjda_afkafbdakjfkjdadd_afnkjadnadnkadjkadjda_adfbadbfadkdbnkdafnkdafadbk"
-console.log(token, "tokennnnnnnnnnnnnnnnnn");
+    // Build form data
+    const formData = new URLSearchParams();
+    formData.append('username', email);
+    formData.append('password', password);
 
-login(token)
+    try {
+      const url = `https://thepinkpact.onrender.com/v1/auth/login`;
+      console.log('🚀 Sending formData:', formData.toString());
 
-    const userData = {
-      email: email,
-      password: password
-    }
-        try {
-      const url = `https://thepinkpact.onrender.com/v1/auth/login`
-      // console.log('🚀 ~ getOtpCode ~ userData:', userData)
-      // console.log('🚀 ~ getOtpCode ~ url:', url)
-      const response = await axios.post(url, userData)
-      const token = "nadnajknckjda_afkafbdakjfkjdadd_afnkjadnadnkadjkadjda_adfbadbfadkdbnkdafnkdafadbk"
-console.log(token, "tokennnnnnnnnnnnnnnnnn");
+      const response = await axios.post(url, formData.toString(), {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
+        },
+      });
 
-        AsyncStorage.setItem('authToken', token)
+      console.log('✅ Login Success:', response?.data);
 
-      console.log('🚀 ~ getOtpCode ~ response:', response?.data)
-
-      if (response?.data != null) {
- 
-        login(response.data?.access_token)
-        setLoading(false)
+      if (response?.data?.access_token) {
+        await AsyncStorage.setItem('authToken', response.data.access_token);
+        login(response.data.access_token);
+      } else {
+        Alert.alert('Error', 'Invalid response from server');
       }
     } catch (error) {
-      console.log('🚀 ~ getOtpCode ~ error:', error)
-      setLoading(false)
       if (axios.isAxiosError(error) && error.response) {
-        setError(error.response.data.detail || 'An error occurred')
+        setError(error.response.data.detail || 'An error occurred');
+      } else {
+        setError('Network error, please try again');
       }
+    } finally {
+      setLoading(false);
     }
-    // setLoading(true);
-
-  
   };
 
   return (
@@ -115,12 +114,21 @@ console.log(token, "tokennnnnnnnnnnnnnnnnn");
       </View>
 
       {/* Forgot Password */}
-      <TouchableOpacity style={styles.forgotPassword} onPress={() => navigation.navigate('ForgotPassword')}>
-        <Text style={[commonStyles.underlineText, {marginTop: 0}]}>Forgot Password</Text>
+      <TouchableOpacity
+        style={styles.forgotPassword}
+        onPress={() => navigation.navigate('ForgotPassword')}
+      >
+        <Text style={[commonStyles.underlineText, { marginTop: 0 }]}>
+          Forgot Password
+        </Text>
       </TouchableOpacity>
 
       {/* Gradient Login Button */}
-      <CustomButton title="Login" onPress={() => handleLogin()} />
+      <CustomButton
+        title="Login"
+        onPress={() => handleLogin()}
+        loading={loading}
+      />
 
       {/* OR divider */}
       <View style={styles.dividerContainer}>
@@ -142,7 +150,10 @@ console.log(token, "tokennnnnnnnnnnnnnnnnn");
       </TouchableOpacity>
 
       {/* Signup link */}
-      <Text style={styles.signupText} onPress={() => navigation.navigate('SignUp')}>
+      <Text
+        style={styles.signupText}
+        onPress={() => navigation.navigate('SignUp')}
+      >
         Do not have an account? <Text style={styles.signupLink}>Sign up</Text>
       </Text>
     </View>

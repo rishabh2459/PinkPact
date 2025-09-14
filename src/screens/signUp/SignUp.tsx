@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Dimensions,
   TouchableOpacity,
   Switch,
+  Alert,
 } from 'react-native';
 import CustomButton from '../../coponents/molecules/GetStartedButton'; // Your existing button
 import colors from '../../utils/styles/Colors';
@@ -15,39 +16,30 @@ import NormalizeSize from '../../utils/fontScaler/NormalizeSize';
 import { commonStyles } from '../../coponents/styles/CommonStyles';
 import { useNavigation } from '@react-navigation/native';
 import SvgIcon from '../../coponents/icons/Icons';
+import { useDispatch } from 'react-redux';
+import apiService from '../../api/apiServices';
 
 const { width } = Dimensions.get('window');
 
 const SignupScreen = () => {
   const navigation = useNavigation();
+  const dispatch = useDispatch<AppDispatch>();
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secure, setSecure] = useState(true);
+  const [countries, setCountries] = useState([]);
+
   const [openYourSelfDropdown, setOpenYourSelfDropdown] = useState(false);
   const [yourSelfDropdownValue, setYourSelfDropdownValue] = useState(null);
-  const [yourSelfDropdowIitems, setYourSelfDropdownItems] = useState([
-    { label: 'I am a Patient', value: 1 },
-    { label: 'I am a Partner', value: 2 },
-    { label: 'I am a Loved One', value: 3 },
-    { label: 'I am a Medical Professional', value: 4 },
-  ]);
+  const [yourSelfDropdowIitems, setYourSelfDropdownItems] = useState([]);
+
   const [openJourneyDropdown, setOpenJourneyDropdown] = useState(false);
   const [journeyDropdownValue, setJourneyDropdownValue] = useState(null);
-  const [journeyDropdowIitems, setJourneyDropdownItems] = useState([
-    { label: 'Waiting for Diagnosis', value: 1 },
-    { label: 'Just Diagnosed', value: 2 },
-    { label: 'In Treatment', value: 3 },
-    { label: 'I am in Remission', value: 4 },
-  ]);
+  const [journeyDropdowIitems, setJourneyDropdownItems] = useState([]);
   const [openCancerTypeDropdown, setOpenCancerTypeDropdown] = useState(false);
   const [cancerTypeDropdownValue, setCancerTypeDropdownValue] = useState(null);
-  const [cancerTypeDropdowIitems, setCancerTypeDropdownItems] = useState([
-    { label: 'Breast Cancer', value: 1 },
-    { label: 'Blood Cancer', value: 2 },
-    { label: 'Bones Cancer', value: 3 },
-    { label: 'Heacd and Neck Cancer', value: 4 },
-  ]);
+  const [cancerTypeDropdowIitems, setCancerTypeDropdownItems] = useState([]);
   const [formData, setFormData] = useState({
     firstName: '',
     surname: '',
@@ -60,6 +52,61 @@ const SignupScreen = () => {
     email: '',
     password: '',
   });
+
+  const loadPatient = async () => {
+    try {
+      const url = `/v1/reference/user_types`;
+
+      const result = await apiService.get(url);
+      console.log(result, ' resssssssssssssssss');
+
+      if (result?.data) {
+        setYourSelfDropdownItems(result?.data);
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err);
+    }
+  };
+
+  const journeyType = async () => {
+    try {
+      const url = `/v1/reference/journey_types`;
+
+      const result = await apiService.get(url);
+
+      if (result?.data) {
+        setJourneyDropdownItems(result?.data);
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err);
+    }
+  };
+
+  const cancerType = async () => {
+    try {
+      const url = `/v1/reference/cancer_types`;
+
+      const result = await apiService.get(url);
+
+      if (result?.data) {
+        const dropdownData = result?.data.map(item => ({
+          label: item.name,
+          value: item.id,
+        }));
+        setCancerTypeDropdownItems(dropdownData);
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err);
+    }
+  };
+
+  console.log(cancerTypeDropdowIitems, 'test');
+
+  useEffect(() => {
+    loadPatient();
+    journeyType();
+    cancerType();
+  }, []);
 
   const handleNext = () => {
     if (step < 4) {
@@ -95,7 +142,42 @@ const SignupScreen = () => {
     }
   };
 
-  const handleSubmit = () => {};
+  const handleRegister = async () => {
+    // if (
+    //   !formData.email ||
+    //   !formData.password ||
+    //   !formData.firstName ||
+    //   !formData.surname 
+    // ) {
+    //   Alert.alert('Please fill in all required fields');
+    //   return;
+    // }
+
+    try {
+      const url = `/v1/auth/register`;
+
+      const data = {
+        first_name: formData?.firstName,
+        last_name: formData?.surname,
+        email: email,
+        password: password,
+        country_id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+        user_type: yourSelfDropdownValue,
+        journey_type: journeyDropdownValue,
+        cancer_type_id: cancerTypeDropdownValue,
+      };
+
+      console.log(data, "========================================================");
+      
+      const result = await apiService.post(url, data);
+
+      if (result?.data) {
+        navigation.navigate('Login')
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -106,7 +188,7 @@ const SignupScreen = () => {
           <SvgIcon name="back" width={20} height={20} />
         </TouchableOpacity>
       )}
-      <View style={{ height:step == 4 ? '100%' : '80%' }}>
+      <View style={{ height: step == 4 ? '100%' : '80%' }}>
         {/* Step 1 */}
         {step === 1 && (
           <>
@@ -215,13 +297,13 @@ const SignupScreen = () => {
         )}
 
         {step === 4 && (
-          <View style={{marginTop: 20}}>
+          <View style={{ marginTop: 20 }}>
             {/* Title */}
             <Text style={styles.welcome}>Welcome!</Text>
 
             {/* Email Input */}
             <TextInput
-              style={[styles.input, {width: '100%'}]}
+              style={[styles.input, { width: '100%' }]}
               placeholder="abc@gmail.com"
               placeholderTextColor={colors?.placeholder}
               value={email}
@@ -250,14 +332,17 @@ const SignupScreen = () => {
               </TouchableOpacity>
             </View>
 
-           <TouchableOpacity style={{marginVertical: NormalizeSize.getFontSize(20)}} >
-            <Text style={[styles.signupText, {marginTop: 0}]}>I agreed with the Terms of Service and confirm 
-            I have read the <Text style={commonStyles?.underlineText}>Privacy Policy </Text>
-            </Text>
-           </TouchableOpacity>
+            <TouchableOpacity
+              style={{ marginVertical: NormalizeSize.getFontSize(20) }}
+            >
+              <Text style={[styles.signupText, { marginTop: 0 }]}>
+                I agreed with the Terms of Service and confirm I have read the{' '}
+                <Text style={commonStyles?.underlineText}>Privacy Policy </Text>
+              </Text>
+            </TouchableOpacity>
 
             {/* Gradient Login Button */}
-            <CustomButton title="Sign Up" onPress={() => handleSubmit()} />
+            <CustomButton title="Sign Up" onPress={() => handleRegister()} />
 
             {/* OR divider */}
             <View style={styles.dividerContainer}>
