@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Dimensions,
   ActivityIndicator,
+  View,
 } from 'react-native';
 import NormalizeSize from '../../utils/fontScaler/NormalizeSize';
 import LinearGradient from 'react-native-linear-gradient';
@@ -14,7 +15,7 @@ const { width } = Dimensions.get('window');
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  loading: boolean
+  loading: boolean;
 }
 
 const CustomButton: React.FC<ButtonProps> = ({ title, onPress, loading }) => {
@@ -31,7 +32,9 @@ const CustomButton: React.FC<ButtonProps> = ({ title, onPress, loading }) => {
         style={styles.button}
       >
         {loading ? (
-          <ActivityIndicator color={'white'} size={'small'} />
+          <View style={{justifyContent:'center', alignItems: 'center', height: '100%'}}>
+            <ActivityIndicator color={'white'} size={'small'} />
+          </View>
         ) : (
           <Text style={styles.buttonText}>{title}</Text>
         )}

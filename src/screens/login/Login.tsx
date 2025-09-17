@@ -42,6 +42,7 @@ const LoginScreen = () => {
       return;
     }
 
+    setLoading(true)
     // Build form data
     const formData = new URLSearchParams();
     formData.append('username', email);

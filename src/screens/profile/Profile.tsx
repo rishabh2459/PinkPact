@@ -1,5 +1,5 @@
 // EditProfile.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,9 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Modal,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { launchImageLibrary } from 'react-native-image-picker';
 import colors from '../../utils/styles/Colors';
 import SvgIcon from '../../coponents/icons/Icons';
 import NormalizeSize from '../../utils/fontScaler/NormalizeSize';
@@ -20,59 +20,163 @@ import { commonStyles } from '../../coponents/styles/CommonStyles';
 import LinearGradient from 'react-native-linear-gradient';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Entypo from 'react-native-vector-icons/Entypo';
+import apiService from '../../api/apiServices';
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 
 export default function EditProfile({ navigation }: any) {
   const [image, setImage] = useState<string | null>(null);
+  const [profileData, setProfileData] = useState(null);
+
   const [bio, setBio] = useState('');
   const [generation, setGeneration] = useState('');
   const [education, setEducation] = useState('');
   const [supportBuddy, setSupportBuddy] = useState('');
   const [generationDropdown, setGenerationDropdown] = useState(false);
-  const [generationDropdownValue, setGenerationDropdownValue] = useState(null);
-  const [generationDropdowIitems, setGenerationDropdownItems] = useState([
-    { label: 'Silent Generation (1928-1945)', value: 1 },
-    { label: 'Baby Boomers (1946-1964)', value: 2 },
-    { label: 'GenerationX (1965-1980)', value: 3 },
-    { label: 'Millennials (1981-1996)', value: 4 },
-    { label: 'Generation Z (1997-2012)', value: 5 },
-    { label: 'Generation Alpha (2013-2024)', value: 6 },
-  ]);
+  const [generationDropdownValue, setGenerationDropdownValue] = useState('');
+  const [generationDropdowIitems, setGenerationDropdownItems] = useState([]);
 
   const [educationDropdown, setEducationDropdown] = useState(false);
-  const [educationDropdownValue, setEducationDropdownValue] = useState(null);
-  const [educationDropdowIitems, setEducationDropdownItems] = useState([
-    { label: 'Silent Generation (1928-1945)', value: 1 },
-    { label: 'Baby Boomers (1946-1964)', value: 2 },
-    { label: 'GenerationX (1965-1980)', value: 3 },
-    { label: 'Millennials (1981-1996)', value: 4 },
-    { label: 'Generation Z (1997-2012)', value: 5 },
-    { label: 'Generation Alpha (2013-2024)', value: 6 },
-  ]);
-
+  const [educationDropdownValue, setEducationDropdownValue] = useState('');
+  const [educationDropdowIitems, setEducationDropdownItems] = useState([]);
+  const [imagePickerModal, setImagePickerModal] = useState(false);
   // 📷 Pick Image
-  const pickImage = async () => {
+  // 📷 Pick Image from Gallery
+  const pickImageFromGallery = async () => {
     const result: any = await launchImageLibrary({
       mediaType: 'photo',
       includeBase64: false,
-      maxHeight: 200,
-      maxWidth: 200,
+      maxHeight: 500,
+      maxWidth: 500,
     });
-
     if (result.assets && result.assets.length > 0) {
       setImage(result.assets[0].uri);
     }
+    setImagePickerModal(false);
   };
 
-  // ✅ Save Profile
-  const handleSave = () => {
-    Alert.alert('Profile Updated', 'Your changes have been saved!');
-    // Here you can call your API to update profile
+  // 📷 Take Photo from Camera
+  const pickImageFromCamera = async () => {
+    const result: any = await launchCamera({
+      mediaType: 'photo',
+      includeBase64: false,
+      saveToPhotos: true,
+    });
+    if (result.assets && result.assets.length > 0) {
+      setImage(result.assets[0].uri);
+    }
+    setImagePickerModal(false);
   };
+
+  const generationLevel = async () => {
+    try {
+      const url = `/v1/reference/generations`;
+
+      const result = await apiService.get(url);
+
+      if (result?.data) {
+        const dropdownData = result?.data.map(item => ({
+          label: item.label,
+          value: item.id,
+        }));
+        setGenerationDropdownItems(dropdownData);
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err);
+    }
+  };
+
+  const educationlevel = async () => {
+    try {
+      const url = `/v1/reference/education_levels`;
+
+      const result = await apiService.get(url);
+
+      if (result?.data) {
+        const dropdownData = result?.data.map(item => ({
+          label: item.label,
+          value: item.id,
+        }));
+        setEducationDropdownItems(dropdownData);
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err);
+    }
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const url = `/v1/profile`;
+
+      const result = await apiService.get(url);
+
+      if (result?.data) {
+        setProfileData(result?.data);
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err);
+    }
+  };
+
+  useEffect(() => {
+    educationlevel();
+    generationLevel();
+    fetchProfile();
+  }, []);
+
+ const handleSubmit = async () => {
+    try {
+      const url = `/v1/profile`;
+
+      const formData = new FormData();
+      formData.append('first_name', profileData?.first_name || '');
+      formData.append('last_name', profileData?.last_name || '');
+
+      // ✅ Handle avatar upload if user selected new image
+        formData.append('avatar_url', {
+          uri: image,
+          name: 'profile.jpg',
+          type: 'image/jpeg',
+        } as any);
+      
+
+      formData.append('bio', bio === '' ? profileData?.bio || '' : bio);
+      formData.append(
+        'buddy_description',
+        supportBuddy === '' ? profileData?.buddy_description || '' : supportBuddy,
+      );
+      formData.append('birthday', '2025-09-24');
+      formData.append('gender', 'male');
+      formData.append('phone_number', '8744512112');
+      formData.append(
+        'education_level_id',
+        educationDropdownValue === ''
+          ? profileData?.education_level_id || ''
+          : educationDropdownValue,
+      );
+      formData.append(
+        'generation_id',
+        generationDropdownValue === ''
+          ? profileData?.generation_id || ''
+          : generationDropdownValue,
+      );
+
+      const result = await apiService.put(url, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (result?.data) {
+        navigation.navigate('Home');
+      }
+    } catch (err) {
+      console.log('🚀 ~ handleSubmit ~ err:', err);
+    }
+  };
+  console.log(profileData, 'profiiiiiiiiiiiiiiiiiiii');
 
   return (
     <>
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={{flexDirection: 'row', justifyContent:'space-between'}}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <TouchableOpacity
             style={{
               position: 'relative',
@@ -84,7 +188,11 @@ export default function EditProfile({ navigation }: any) {
               alignItems: 'center',
             }}
           >
-            <MaterialIcons name="arrow-back-ios-new" size={22} color={colors?.white} />
+            {/* <MaterialIcons
+              name="arrow-back-ios-new"
+              size={22}
+              color={colors?.white}
+            /> */}
           </TouchableOpacity>
           <TouchableOpacity
             style={{
@@ -97,7 +205,6 @@ export default function EditProfile({ navigation }: any) {
               alignItems: 'center',
             }}
             onPress={() => navigation.navigate('VisitProfile')}
-
           >
             <MaterialIcons name="settings" size={22} color="#000" />
           </TouchableOpacity>
@@ -106,7 +213,10 @@ export default function EditProfile({ navigation }: any) {
         <Text style={styles.title}>Edit profile</Text>
 
         {/* Profile Image */}
-        <TouchableOpacity onPress={pickImage} style={styles.imageContainer}>
+        <TouchableOpacity
+          onPress={() => setImagePickerModal(true)}
+          style={styles.imageContainer}
+        >
           <Image
             source={
               image
@@ -124,7 +234,7 @@ export default function EditProfile({ navigation }: any) {
         <Text style={styles.label}>Bio</Text>
         <TextInput
           style={styles.remarks}
-          value={bio}
+          value={bio === '' ? profileData?.bio : bio}
           onChangeText={setBio}
           placeholder="Write something about you..."
           placeholderTextColor="#aaa"
@@ -139,7 +249,11 @@ export default function EditProfile({ navigation }: any) {
             placeholderStyle={{ color: colors?.placeholder }}
             textStyle={commonStyles?.dropdownTextInput}
             open={generationDropdown}
-            value={generationDropdownValue}
+            value={
+              generationDropdownValue === ''
+                ? profileData?.generation_id
+                : generationDropdownValue
+            }
             items={generationDropdowIitems}
             setOpen={setGenerationDropdown}
             setValue={setGenerationDropdownValue}
@@ -149,13 +263,17 @@ export default function EditProfile({ navigation }: any) {
 
         {/* Education */}
         <Text style={styles.label}>Education level</Text>
-        <View style={styles.pickerContainer}>
+        <View style={[styles.pickerContainer, { zIndex: 2 }]}>
           <DropDownPicker
             placeholder="Select Option"
             placeholderStyle={{ color: colors?.placeholder }}
             textStyle={commonStyles?.dropdownTextInput}
             open={educationDropdown}
-            value={educationDropdownValue}
+            value={
+              educationDropdownValue === ''
+                ? profileData?.education_level_id
+                : educationDropdownValue
+            }
             items={educationDropdowIitems}
             setOpen={setEducationDropdown}
             setValue={setEducationDropdownValue}
@@ -167,7 +285,9 @@ export default function EditProfile({ navigation }: any) {
         <Text style={styles.label}>What I look for in a support buddy?</Text>
         <TextInput
           style={styles.remarks}
-          value={supportBuddy}
+          value={
+            supportBuddy === '' ? profileData?.buddy_description : supportBuddy
+          }
           onChangeText={setSupportBuddy}
           placeholder="Type here..."
           placeholderTextColor="#aaa"
@@ -190,7 +310,7 @@ export default function EditProfile({ navigation }: any) {
             <Text style={{ color: '#fff' }}>Cancel</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.saveButton]} onPress={handleSave}>
+          <TouchableOpacity style={[styles.saveButton]} onPress={handleSubmit}>
             <LinearGradient
               colors={['#ff3cab', '#aa7cff']}
               start={{ x: 1, y: 1 }}
@@ -202,6 +322,40 @@ export default function EditProfile({ navigation }: any) {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={imagePickerModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setImagePickerModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPressOut={() => setImagePickerModal(false)}
+        >
+          <View style={styles.modalContainer}>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={pickImageFromCamera}
+            >
+              <Text style={styles.modalButtonText}>📷 Take Photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={pickImageFromGallery}
+            >
+              <Text style={styles.modalButtonText}>🖼️ Choose from Gallery</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: '#444' }]}
+              onPress={() => setImagePickerModal(false)}
+            >
+              <Text style={styles.modalButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </>
   );
 }
@@ -287,4 +441,23 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     borderRadius: 10,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#222',
+    padding: 20,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  modalButton: {
+    backgroundColor: '#333',
+    paddingVertical: 14,
+    marginBottom: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalButtonText: { color: '#fff', fontSize: 16, fontWeight: '500' },
 });

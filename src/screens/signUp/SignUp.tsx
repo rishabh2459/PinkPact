@@ -161,7 +161,7 @@ const SignupScreen = () => {
         last_name: formData?.surname,
         email: email,
         password: password,
-        country_id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+        // country_id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
         user_type: yourSelfDropdownValue,
         journey_type: journeyDropdownValue,
         cancer_type_id: cancerTypeDropdownValue,

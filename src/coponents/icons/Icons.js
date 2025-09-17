@@ -21,6 +21,9 @@ import AddUser from '../../assets/svgs/addUser.svg';
 import AddUserPink from '../../assets/svgs/addUserPink.svg';
 import MessageIcon from '../../assets/svgs/messageIcon.svg';
 import SendButton from '../../assets/svgs/sendButton.svg';
+import SearchIcon from '../../assets/svgs/searchIcon.svg';
+import LikeGrey from '../../assets/svgs/likeGrey.svg';
+import LikedIcon from '../../assets/svgs/likedIcon.svg';
 
 
 // Map icon names to SVG components
@@ -46,7 +49,10 @@ const icons = {
   AddUser,
   MessageIcon,
   AddUserPink,
-  SendButton
+  SendButton,
+  SearchIcon,
+  LikeGrey,
+  LikedIcon
 
 };
 

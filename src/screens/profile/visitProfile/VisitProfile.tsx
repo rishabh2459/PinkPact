@@ -24,7 +24,7 @@ import { FlatList } from 'react-native-gesture-handler';
 import { FontStyles } from '../../../utils/fontScaler/FontStyles';
 import { RFValue } from 'react-native-responsive-fontsize';
 import CommentModal from '../../../coponents/modals/CommentsModal';
-import EmojiSelector from "react-native-emoji-selector";
+import EmojiSelector from 'react-native-emoji-selector';
 
 interface FilterItem {
   id: number | string;
@@ -45,6 +45,11 @@ export default function VisitProfile({ navigation }: any) {
   const [showEmoji, setShowEmoji] = useState(false);
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
   const [comments, setComments] = useState<string[]>(['Nice post!', '🔥🔥']);
+  const [profileData, setProfileData] = useState(null);
+  const [generationLabel, setGenerationLabel] = useState(null);
+  const [educationalLabel, setEducationalLebel] = useState(null);
+  const [generationDropdowIitems, setGenerationDropdownItems] = useState([]);
+  const [educationDropdowIitems, setEducationDropdownItems] = useState([]);
   const [moreDropdown, setMoreDropdown] = useState(false);
   const [moreDropdownValue, setMoreDropdownValue] = useState(null);
   const [moreDropdowIitems, setMoreDropdownItems] = useState([
@@ -69,8 +74,60 @@ export default function VisitProfile({ navigation }: any) {
     }
   };
 
+  const generationLevel = async () => {
+    try {
+      const url = `/v1/reference/generations`;
+
+      const result = await apiService.get(url);
+
+      if (result?.data) {
+        const dropdownData = result?.data.map(item => ({
+          label: item.label,
+          value: item.id,
+        }));
+        setGenerationDropdownItems(dropdownData);
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err);
+    }
+  };
+
+  const educationlevel = async () => {
+    try {
+      const url = `/v1/reference/education_levels`;
+
+      const result = await apiService.get(url);
+
+      if (result?.data) {
+        const dropdownData = result?.data.map(item => ({
+          label: item.label,
+          value: item.id,
+        }));
+        setEducationDropdownItems(dropdownData);
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err);
+    }
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const url = `/v1/profile`;
+      const result = await apiService.get(url);
+
+      if (result?.data) {
+        setProfileData(result?.data);
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err);
+    }
+  };
+
   useEffect(() => {
     fetchposts();
+    educationlevel();
+    generationLevel();
+    fetchProfile();
   }, []);
 
   const renderPosts = ({ item, index }: { item: any; index: number }) => {
@@ -82,7 +139,9 @@ export default function VisitProfile({ navigation }: any) {
             style={styles.miniavatar}
           />
           <View style={styles.userInfo}>
-            <Text style={styles.headerName}>{'Harleen Singh'}</Text>
+            <Text style={styles.headerName}>
+              {profileData?.first_name} {profileData?.last_name}
+            </Text>
             <Text style={styles.headersubText}>24 May 2025</Text>
           </View>
         </View>
@@ -90,7 +149,7 @@ export default function VisitProfile({ navigation }: any) {
         <View>
           <Image
             source={{ uri: `${baseURL}${item?.cover_image_path}` }}
-            style={{ width: '100%', height: '10%' }}
+            style={{ width: '100%', height: 150 }}
           />
           <Text style={styles?.body}>{item?.body}</Text>
         </View>
@@ -119,7 +178,7 @@ export default function VisitProfile({ navigation }: any) {
     );
   };
 
-  console.log(posts, 'postsssssssssssssss');
+  console.log(profileData, 'postsssssssssssssss');
 
   return (
     <ScrollView style={styles.container}>
@@ -151,18 +210,16 @@ export default function VisitProfile({ navigation }: any) {
           style={styles.avatar}
         />
         <View style={styles.userInfo}>
-          <Text style={styles.name}>Harleen Singh</Text>
+          <Text style={styles.name}>
+            {profileData?.first_name} {profileData?.last_name}
+          </Text>
           <Text style={styles.subText}>20 mutual friends</Text>
           <Text style={styles.subText}>4 common groups</Text>
         </View>
       </View>
 
       {/* Bio */}
-      <Text style={styles.bio}>
-        Sed ut perspiciatis unde omnis iste natus error sit voluptatem
-        accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab
-        illo inventore veritatis et quasi architecto beatae.
-      </Text>
+      <Text style={styles.bio}>{profileData?.bio}</Text>
 
       {/* Buttons */}
       <View style={styles.buttonsRow}>
@@ -243,7 +300,6 @@ export default function VisitProfile({ navigation }: any) {
             style={{ flex: 1 }}
             contentContainerStyle={{
               flexGrow: 1,
-              paddingBottom: 50,
             }}
           />
         </>
