@@ -36,7 +36,7 @@ interface FilterItem {
   onApply: () => void;
 }
 
-export default function VisitProfile({ navigation }: any) {
+export default function VisitProfile({ navigation, route }: any) {
   const [tab, setTab] = useState(0);
   const [addUser, setAddUser] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -47,9 +47,9 @@ export default function VisitProfile({ navigation }: any) {
   const [comments, setComments] = useState<string[]>(['Nice post!', '🔥🔥']);
   const [profileData, setProfileData] = useState(null);
   const [generationLabel, setGenerationLabel] = useState(null);
-  const [educationalLabel, setEducationalLebel] = useState(null);
+  const [educationalLabel, setEducationalLabel] = useState(null);
   const [generationDropdowIitems, setGenerationDropdownItems] = useState([]);
-  const [educationDropdowIitems, setEducationDropdownItems] = useState([]);
+  const [educationDropdownItems, setEducationDropdownItems] = useState([]);
   const [moreDropdown, setMoreDropdown] = useState(false);
   const [moreDropdownValue, setMoreDropdownValue] = useState(null);
   const [moreDropdowIitems, setMoreDropdownItems] = useState([
@@ -60,14 +60,16 @@ export default function VisitProfile({ navigation }: any) {
 
   const fetchposts = async () => {
     try {
-      const url = `/v1/profile/articles`;
+      const url = `/v1/profile/posts?user_id=${route?.params?.id}`;
+
+      console.log(url, 'urllllllllll');
 
       const result = await apiService.get(url);
 
       console.log(result, 'rrrrrrrrr21rrrr');
 
       if (result?.data) {
-        setPosts(result?.data);
+        setPosts(result?.data?.posts);
       }
     } catch (err) {
       console.log('🚀 ~ ; ~ err:', err);
@@ -112,7 +114,8 @@ export default function VisitProfile({ navigation }: any) {
 
   const fetchProfile = async () => {
     try {
-      const url = `/v1/profile`;
+      const url = `/v1/profile?user_id=${route?.params?.id}`;
+
       const result = await apiService.get(url);
 
       if (result?.data) {
@@ -128,16 +131,40 @@ export default function VisitProfile({ navigation }: any) {
     educationlevel();
     generationLevel();
     fetchProfile();
-  }, []);
+  }, [posts]);
+
+  console.log(posts, 'routeeeeeeeeeee');
+
+  useEffect(() => {
+    if (profileData) {
+      const educationLabel =
+        educationDropdownItems.find(
+          item => item.value === profileData?.education_level_id,
+        )?.label || '';
+
+      setEducationalLabel(educationLabel);
+      const GenerationLabel =
+        generationDropdowIitems.find(
+          item => item.value === profileData?.generation_id,
+        )?.label || '';
+
+      setGenerationLabel(GenerationLabel);
+    }
+  }, [profileData]);
 
   const renderPosts = ({ item, index }: { item: any; index: number }) => {
     return (
       <View style={{ marginVertical: 10 }}>
         <View style={styles.header}>
-          <Image
-            source={{ uri: 'https://via.placeholder.com/100' }}
-            style={styles.miniavatar}
-          />
+          {item?.author?.avatar_url ? (
+            <Image
+              source={{ uri: item.author?.avatar_url }}
+              style={styles.miniavatar}
+            />
+          ) : (
+            <SvgIcon name="profileTab" width={30} height={30} />
+          )}
+
           <View style={styles.userInfo}>
             <Text style={styles.headerName}>
               {profileData?.first_name} {profileData?.last_name}
@@ -148,8 +175,8 @@ export default function VisitProfile({ navigation }: any) {
 
         <View>
           <Image
-            source={{ uri: `${baseURL}${item?.cover_image_path}` }}
-            style={{ width: '100%', height: 150 }}
+            source={{ uri: item?.media_path }}
+            style={{ width: '100%', height: 150, borderRadius: 5 }}
           />
           <Text style={styles?.body}>{item?.body}</Text>
         </View>
@@ -178,7 +205,7 @@ export default function VisitProfile({ navigation }: any) {
     );
   };
 
-  console.log(profileData, 'postsssssssssssssss');
+  console.log(posts, 'postsssssssssssssss');
 
   return (
     <ScrollView style={styles.container}>
@@ -192,7 +219,7 @@ export default function VisitProfile({ navigation }: any) {
           height: 35,
           borderRadius: 20,
           top: 20,
-          left: 20,
+          // left: 20,
           justifyContent: 'center',
           alignItems: 'center',
         }}
@@ -204,9 +231,9 @@ export default function VisitProfile({ navigation }: any) {
           color={colors?.white}
         />
       </TouchableOpacity>
-      <View style={styles.header}>
+      <View style={[styles.header, { left: 20 }]}>
         <Image
-          source={{ uri: 'https://via.placeholder.com/100' }}
+          source={{ uri: profileData?.avatar_url }}
           style={styles.avatar}
         />
         <View style={styles.userInfo}>
@@ -307,23 +334,23 @@ export default function VisitProfile({ navigation }: any) {
         <View style={styles.tabContainer}>
           <View style={styles.infoBox}>
             <Text style={styles.label}>Generation</Text>
-            <Text style={styles.value}>Baby Boomers (1946–1964)</Text>
+            <Text style={styles.value}>
+              {generationLabel ? generationLabel : ''}
+            </Text>
           </View>
 
           <View style={styles.infoBox}>
             <Text style={styles.label}>Education level</Text>
-            <Text style={styles.value}>Bachelor's Degree</Text>
+            <Text style={styles.value}>
+              {educationalLabel ? educationalLabel : ''}
+            </Text>
           </View>
 
           <View style={styles.infoBox}>
             <Text style={styles.label}>
               What I look for in a support buddy?
             </Text>
-            <Text style={styles.value}>
-              Per natoque mus nec, nascetur vel netus nullam placerat. Potenti
-              Per platea pellentesque fringilla dignissim imperdiet commodo
-              curabitur. Malesuada porttitor.
-            </Text>
+            <Text style={styles.value}>{profileData?.buddy_description}</Text>
           </View>
         </View>
       )}
@@ -402,16 +429,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 15,
-    marginHorizontal: 15,
+    // marginHorizontal: 15,
+    // left: 20
   },
   miniavatar: {
-    width: 20,
-    height: 20,
+    width: 30,
+    height: 30,
     borderRadius: 20,
   },
   avatar: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     borderRadius: 40,
   },
   userInfo: {
@@ -427,6 +455,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
+    borderBottomColor: '#FF3CAB',
+    borderBottomWidth: 1,
+    bottom: 5,
   },
   headersubText: {
     color: '#bbb',

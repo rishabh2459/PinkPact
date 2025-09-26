@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   StyleSheet,
@@ -7,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import colors from '../../utils/styles/Colors';
 import NormalizeSize from '../../utils/fontScaler/NormalizeSize';
 import SvgIcon from '../../coponents/icons/Icons';
@@ -25,7 +26,11 @@ const Home = ({ navigation }) => {
   const [comments, setComments] = useState<string[]>(['Nice post!', '🔥🔥']);
   const [parentCommentId, setParentCommentId] = useState('');
   const [postData, setPostData] = useState('');
-
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [profileData, setProfileData] = useState(null);
 
   const reactions = [
     { emoji: '👍', label: 'Like' },
@@ -35,16 +40,27 @@ const Home = ({ navigation }) => {
     { emoji: '🤗', label: 'Hug' },
   ];
 
-  const fetchFeed = async () => {
+  const fetchFeed = async (pageNumber = 1) => {
+    if (loading || !hasMore) return;
+    setLoading(true);
     try {
-      const url = `/v1/feed?limit=20`;
+      const offset = (pageNumber - 1) * limit; // 0, 20, 40, ...
+      const url = `/v1/feed?limit=${limit}&offset=${offset}`;
       const result = await apiService.get(url);
 
-      if (result?.data) {
-        setFeedData(result?.data?.items);
+      if (result?.data?.items?.length > 0) {
+        if (pageNumber === 1) {
+          setFeedData(result.data.items); // First load (replace)
+        } else {
+          setFeedData(prev => [...prev, ...result.data.items]); // Append new
+        }
+      } else {
+        setHasMore(false); // No more data
       }
     } catch (err) {
-      console.log('🚀 ~ ; ~ err:', err);
+      console.log('🚀 ~ fetchFeed error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -74,52 +90,73 @@ const Home = ({ navigation }) => {
     }
   };
 
-  
   const readPost = async (id: number) => {
     try {
       const url = `/v1/content/posts/${id}`;
       const result = await apiService.get(url);
       if (result?.data) {
-        setPostData(result?.data)
+        setPostData(result?.data);
       }
     } catch (err) {
       console.log('🚀 ~ ; ~ err:', err);
     }
   };
 
-  const commentsFetchData = async (item) => {
-    setCommentsModalVisible(true); 
+  const fetchProfile = async () => {
+    try {
+      const url = `/v1/profile`;
+
+      const result = await apiService.get(url);
+
+      if (result?.data) {
+        setProfileData(result?.data);
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err);
+    }
+  };
+
+  const commentsFetchData = async item => {
+    setCommentsModalVisible(true);
     setParentCommentId(item?.id);
-    readPost(item?.id)
-    
+    readPost(item?.id);
   };
 
   useEffect(() => {
     fetchFeed();
+    fetchProfile();
   }, []);
 
   const renderPosts = ({ item, index }: { item: any; index: number }) => {
-    console.log(item?.author?.username);
-
     return (
       <View style={{ marginVertical: 10 }}>
-        <View style={styles.header}>
-          <Image
-            source={{ uri: 'https://via.placeholder.com/100' }}
-            style={styles.miniavatar}
-          />
+        <TouchableOpacity
+          style={styles.header}
+          onPress={() =>
+            navigation.navigate('VisitProfile', { id: item?.author?.author_id })
+          }
+        >
+          {item?.author?.avatar_url ? (
+            <Image
+              source={{ uri: item.author?.avatar_url }}
+              style={styles.miniavatar}
+            />
+          ) : (
+            <SvgIcon name="profileTab" width={30} height={30} />
+          )}
+
           <View style={styles.userInfo}>
             <Text style={styles.headerName}>{item?.author?.username}</Text>
             <Text style={styles.headersubText}>
               {moment(item?.created_at).format('DD MMM YYYY')}
             </Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View>
           <Image
-            source={{ uri: `${baseURL}${item?.cover_image_path}` }}
-            style={{ width: '100%', height: 150 }}
+            source={{ uri: item?.media_path }}
+            style={{ width: '100%', height: 150, borderRadius: 5 }}
           />
           <Text style={styles?.body}>{item?.summary}</Text>
         </View>
@@ -177,6 +214,16 @@ const Home = ({ navigation }) => {
     );
   };
 
+  const handleLoadMore = useCallback(() => {
+    if (!loading && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchFeed(nextPage);
+    }
+  }, [loading, hasMore, page]);
+
+  console.log(profileData, 'prooooooooooooooooooooo');
+
   return (
     <View style={styles?.container}>
       <View
@@ -194,9 +241,18 @@ const Home = ({ navigation }) => {
       </View>
 
       <View style={styles?.searchContainer}>
-        <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-          <SvgIcon name={'profileTab'} width={30} height={30} />
-        </TouchableOpacity>
+        {profileData?.avatar_url ? (
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+            <Image
+              source={{ uri: profileData?.avatar_url }}
+              style={styles.miniavatar2}
+            />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+            <SvgIcon name={'profileTab'} width={30} height={30} />
+          </TouchableOpacity>
+        )}
 
         <View style={styles.textInputContainer}>
           <TextInput
@@ -208,7 +264,6 @@ const Home = ({ navigation }) => {
           <SvgIcon name={'Gallery'} width={20} height={20} />
         </View>
       </View>
-
       <FlatList
         data={feedData}
         keyExtractor={(item, index) => index.toString()}
@@ -218,6 +273,11 @@ const Home = ({ navigation }) => {
           flexGrow: 1,
           marginTop: 20,
         }}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loading ? <ActivityIndicator size="large" color="#fff" /> : null
+        }
       />
 
       <CommentModal
@@ -313,11 +373,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 15,
-    marginHorizontal: 15,
+    // marginHorizontal: 15,
   },
   miniavatar: {
-    width: 20,
-    height: 20,
+    width: 30,
+    height: 30,
+    borderRadius: 20,
+  },
+  miniavatar2: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
   },
   userInfo: {

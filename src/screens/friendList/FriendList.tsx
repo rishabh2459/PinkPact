@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,53 +10,13 @@ import {
 } from 'react-native';
 import colors from '../../utils/styles/Colors';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-
-const DATA = [
-  {
-    id: '1',
-    name: 'Harleen Singh',
-    mutualFriends: 2,
-    image: 'https://randomuser.me/api/portraits/women/44.jpg',
-  },
-  {
-    id: '2',
-    name: 'Damini Nair',
-    mutualFriends: 0,
-    image: 'https://randomuser.me/api/portraits/women/47.jpg',
-  },
-  {
-    id: '3',
-    name: 'Harleen Singh',
-    mutualFriends: 2,
-    image: 'https://randomuser.me/api/portraits/women/45.jpg',
-  },
-  {
-    id: '4',
-    name: 'Damini Nair',
-    mutualFriends: 0,
-    image: 'https://randomuser.me/api/portraits/women/49.jpg',
-  },
-  {
-    id: '5',
-    name: 'Harleen Singh',
-    mutualFriends: 2,
-    image: 'https://randomuser.me/api/portraits/women/45.jpg',
-  },
-  {
-    id: '6',
-    name: 'Damini Nair',
-    mutualFriends: 0,
-    image: 'https://randomuser.me/api/portraits/women/49.jpg',
-  },
-];
+import apiService from '../../api/apiServices';
+import NormalizeSize from '../../utils/fontScaler/NormalizeSize';
 
 export default function FriendList({ navigation }) {
   const [search, setSearch] = useState('');
   const [friends, setFriends] = useState({});
-
-  const handleAddFriend = id => {
-    setFriends(prev => ({ ...prev, [id]: 'requested' }));
-  };
+  const [userList, setUserList] = useState([]);
 
   const handleRemove = id => {
     setFriends(prev => {
@@ -70,57 +30,116 @@ export default function FriendList({ navigation }) {
     alert(`Message sent to ${id}`);
   };
 
-  const filteredData = DATA.filter(item =>
-    item.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const fetchUsers = async text => {
+    setSearch(text);
+    try {
+      const url = `/v1/social/search?q=${text}`;
+      const result = await apiService.get(url);
+
+      console.log(result?.data, 'dataaaaaaaaaaaaaaaaaaaaaa');
+
+      if (result?.data) {
+        setUserList(result?.data?.users);
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err);
+    }
+  };
+
+  const handleAddFriend = async (id) => {
+    const userId = {
+      receiver_id: id,
+    };
+
+    try {
+      const url = `/v1/social/friends/add`;
+      const result = await apiService.post(url, userId);
+
+      if (result?.data) {
+        setFriends(prev => ({ ...prev, [id]: 'requested' }));
+        fetchUsers(search);
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err);
+    }
+  };
+
+    const handleUnFriend = async (id) => {
+    try {
+      const url = `/v1/social/friends/requests/${id}`;
+      const result = await apiService.delete(url);
+
+      if (result?.data) {
+        fetchUsers(search);
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err);
+    }
+  };
+  // useEffect(() => {
+  //   fetchUsers();
+  // }, []);
 
   const renderItem = ({ item }) => {
     const status = friends[item.id];
 
+    console.log(item, 'itemmmmm');
+
     return (
-      <View style={styles.card}>
-        <Image source={{ uri: item.image }} style={styles.image} />
-        <Text style={styles.name}>{item.name}</Text>
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() =>
+          navigation.navigate('VisitProfile', { id: item?.user_id })
+        }
+      >
+        <Image source={{ uri: item.avatar_url }} style={styles.image} />
+        <Text
+          style={styles.name}
+        >{`${item.first_name} ${item.last_name}`}</Text>
         <Text style={styles.mutual}>
-          {item.mutualFriends > 0
-            ? `${item.mutualFriends} mutual friends`
+          {item?.mutual_friends > 0
+            ? `${item?.mutual_friends} mutual friends`
             : 'No mutual friends'}
         </Text>
 
-        {status === 'requested' ? (
+        {item?.friendship_status === 'request_sent' ? (
           <View style={styles.row}>
-            <Text style={styles.requestText}>Request sent.</Text>
-            <TouchableOpacity
+            <TouchableOpacity onPress={() => handleUnFriend(item.user_id)}>
+              <Text style={styles.requestText}>Request sent</Text>
+            </TouchableOpacity>
+            {/* <TouchableOpacity
               style={styles.messageBtn}
-              onPress={() => handleMessage(item.id)}
+              onPress={() => handleMessage(item.user_id)}
             >
               <Text style={styles.btnText}>Message</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         ) : (
           <View style={styles.row}>
             <TouchableOpacity
               style={styles.addBtn}
-              onPress={() => handleAddFriend(item.id)}
+              onPress={() => handleAddFriend(item.user_id)}
             >
-              <Text style={styles.btnText}>Add friend</Text>
+              <Text style={[styles.btnText, { color: colors?.black }]}>
+                Add friend
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.removeBtn}
-              onPress={() => handleRemove(item.id)}
+              onPress={() => handleRemove(item.user_id)}
             >
               <Text style={styles.btnText}>Remove</Text>
             </TouchableOpacity>
           </View>
         )}
-      </View>
+      </TouchableOpacity>
     );
   };
 
   return (
     <View style={styles.container}>
       {/* Search */}
-      <View style={{flexDirection: 'row', marginTop: 20}}>
+      <View style={{ flexDirection: 'row', marginTop: 20 }}>
         <TouchableOpacity
           style={{
             position: 'relative',
@@ -129,7 +148,7 @@ export default function FriendList({ navigation }) {
             width: 35,
             height: 35,
             borderRadius: 20,
-     
+
             justifyContent: 'center',
             alignItems: 'center',
           }}
@@ -146,14 +165,15 @@ export default function FriendList({ navigation }) {
           placeholder="Search"
           placeholderTextColor="#888"
           value={search}
-          onChangeText={setSearch}
+          onChangeText={e => fetchUsers(e)}
         />
       </View>
       {/* FlatList with 2 columns */}
       <FlatList
-        data={filteredData}
-        keyExtractor={item => item.id}
+        data={userList}
+        keyExtractor={item => item.user_id}
         renderItem={renderItem}
+        keyboardShouldPersistTaps= "always"
         numColumns={2}
         columnWrapperStyle={{ justifyContent: 'space-between' }}
         contentContainerStyle={styles.list}
@@ -207,14 +227,22 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   addBtn: {
-    backgroundColor: '#444',
-    padding: 6,
+    backgroundColor: colors?.white,
+    width: '47.5%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: NormalizeSize.getFontSize(24),
     borderRadius: 6,
     marginRight: 6,
   },
   removeBtn: {
-    backgroundColor: '#444',
-    padding: 6,
+    backgroundColor: '#111',
+    width: '47.5%',
+    justifyContent: 'center',
+    height: NormalizeSize.getFontSize(24),
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors?.white,
     borderRadius: 6,
   },
   messageBtn: {
@@ -224,7 +252,7 @@ const styles = StyleSheet.create({
   },
   btnText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: NormalizeSize.getFontSize(12),
   },
   requestText: {
     color: 'magenta',

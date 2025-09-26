@@ -31,7 +31,8 @@ const colors = {
   greentagBackground: '#EEFFEF',
   darkGreen: '#155226',
 
-  blueChipBackground: '#EEF8FC'
+  blueChipBackground: '#EEF8FC',
+  lightGrey : '#F1F2F3'
   
 }
 

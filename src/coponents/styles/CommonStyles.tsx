@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
 import NormalizeSize from '../../utils/fontScaler/NormalizeSize';
 import colors from '../../utils/styles/Colors';
+import { Font_Sizes } from '../../utils/fontScaler/fonts';
 
 export const commonStyles = StyleSheet.create({
   heading: {
@@ -48,4 +49,8 @@ export const commonStyles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: '#fff',
   },
+  errorText:{
+    fontSize: Font_Sizes.small,
+    color: colors?.danger
+  }
 });

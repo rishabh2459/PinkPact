@@ -43,20 +43,20 @@ const CommentModal: React.FC<CommentModalProps> = ({
   const [newComment, setNewComment] = useState('');
   // local copy of top-level comments array
   const [localComments, setLocalComments] = useState<any[]>(
-    comments?.comments?.items ?? []
+    comments?.comments?.items ?? [],
   );
 
   // map commentId -> array of replies
   const [repliesMap, setRepliesMap] = useState<Record<string, any[]>>({});
   // map commentId -> whether replies visible
   const [showRepliesMap, setShowRepliesMap] = useState<Record<string, boolean>>(
-    {}
+    {},
   );
 
-    const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyingToUser, setReplyingToUser] = useState<string | null>(null);
+  const [profileData, setProfileData] = useState(null);
   const inputRef = useRef<TextInput>(null);
-
 
   useEffect(() => {
     if (visible) {
@@ -77,6 +77,27 @@ const CommentModal: React.FC<CommentModalProps> = ({
   useEffect(() => {
     setLocalComments(comments?.comments?.items ?? []);
   }, [comments]);
+
+  const fetchProfile = async () => {
+    try {
+      const url = `/v1/profile`;
+
+      const result = await apiService.get(url);
+
+      if (result?.data) {
+        setProfileData(result?.data);
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  console.log(localComments, 'localcomments========');
+  console.log(profileData, 'profileeeeeeeeeeeeeeeee');
 
   const panResponder = useRef(
     PanResponder.create({
@@ -103,7 +124,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
           }).start();
         }
       },
-    })
+    }),
   ).current;
 
   // Fetch replies for a comment
@@ -139,8 +160,13 @@ const CommentModal: React.FC<CommentModalProps> = ({
 
   // Post comment or reply
   // pass parentCommentId as '' | null for top-level, else the comment id
-  const PostComment = async (postId: string, parentCommentId?: string | null) => {
+  // Post comment or reply
+  const PostComment = async (
+    postId: string,
+    parentCommentId?: string | null,
+  ) => {
     if (!newComment.trim()) return;
+
     const formData = new URLSearchParams();
     formData.append('body', newComment.trim());
     if (parentCommentId) {
@@ -150,7 +176,7 @@ const CommentModal: React.FC<CommentModalProps> = ({
     try {
       const url = `/v1/content/comments/${postId}`;
       console.log('📤 Posting to:', url, 'parent:', parentCommentId);
-      // apiService.post should already include auth header (if configured), otherwise add here
+
       const result = await apiService.post(url, formData.toString(), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -164,31 +190,46 @@ const CommentModal: React.FC<CommentModalProps> = ({
         return;
       }
 
-      // If this is a reply (parentCommentId provided) -> add to repliesMap for that comment
+      // 👉 Merge in profileData so that author is available in local state
+      const newCommentObj = {
+        ...posted,
+        author: {
+          author_id: profileData?.user_id,
+          username:
+            profileData?.username ??
+            `${profileData?.first_name?.toLowerCase()}_r1`,
+          first_name: profileData?.first_name,
+          last_name: profileData?.last_name,
+          avatar_url: profileData?.avatar_url,
+          bio: profileData?.bio ?? null,
+        },
+      };
+
       if (parentCommentId) {
-        // If replies already in memory, append
+        // Reply
         setRepliesMap(prev => {
           const prevReplies = prev[parentCommentId] ?? [];
-          return { ...prev, [parentCommentId]: [posted, ...prevReplies] };
+          return {
+            ...prev,
+            [parentCommentId]: [newCommentObj, ...prevReplies],
+          };
         });
-        // ensure replies visible
         setShowRepliesMap(prev => ({ ...prev, [parentCommentId]: true }));
 
-        // Also update comments_count for parent in localComments
+        // update comment count on parent
         setLocalComments(prev =>
           prev.map(c =>
             c.id === parentCommentId
               ? { ...c, comments_count: (c.comments_count ?? 0) + 1 }
-              : c
-          )
+              : c,
+          ),
         );
       } else {
-        // top-level comment -> prepend to localComments
-        setLocalComments(prev => [posted, ...prev]);
-        // update comments.global if you keep that elsewhere
+        // Top-level comment
+        setLocalComments(prev => [newCommentObj, ...prev]);
       }
 
-      // call parent's callback
+      // callback + clear input
       onAddComment(newComment.trim());
       setNewComment('');
     } catch (err) {
@@ -199,8 +240,14 @@ const CommentModal: React.FC<CommentModalProps> = ({
   // Render a single reply
   const ReplyRow = ({ reply }: { reply: any }) => {
     const avatar =
-      reply?.author?.avatar_url || reply?.author?.avatar || reply?.author?.image;
-    const imageUri = avatar ? (avatar.startsWith('http') ? avatar : `${baseURL}${avatar}`) : null;
+      reply?.author?.avatar_url ||
+      reply?.author?.avatar ||
+      reply?.author?.image;
+    const imageUri = avatar
+      ? avatar.startsWith('http')
+        ? avatar
+        : `${baseURL}${avatar}`
+      : null;
 
     return (
       <View style={styles.replyRow}>
@@ -211,25 +258,34 @@ const CommentModal: React.FC<CommentModalProps> = ({
         <View style={{ flex: 1 }}>
           <Text style={styles.commentTextSmall}>{reply?.body}</Text>
           <Text style={styles.replyMeta}>
-            {reply?.author?.username ?? reply?.author?.first_name ?? 'Unknown'} ·{' '}
-            {new Date(reply?.created_at).toLocaleString()}
+            {reply?.author?.username ?? reply?.author?.first_name ?? 'Unknown'}{' '}
+            · {new Date(reply?.created_at).toLocaleString()}
           </Text>
         </View>
       </View>
     );
   };
 
-const renderItem = ({ item }: { item: any }) => {
+  const renderItem = ({ item }: { item: any }) => {
     const hasReplies = (item?.comments_count ?? 0) > 0;
 
     return (
       <View style={styles.commentContainer}>
         <View style={styles.commentRow}>
+          <Image
+            source={{ uri: item?.author?.avatar_url }}
+            style={styles.userImageSmall}
+          />
           <View style={{ flex: 1 }}>
             <Text style={styles.commentText}>
-              {item?.author?.username ?? item?.author?.first_name} ·{' '}
+              {item?.author?.username ?? item?.author?.first_name}{' '}
             </Text>
-            <Text style={[styles.commentMeta, { fontSize: Font_Sizes?.small, color: '#BCBCBC' }]}>
+            <Text
+              style={[
+                styles.commentMeta,
+                { fontSize: Font_Sizes?.small, color: '#BCBCBC' },
+              ]}
+            >
               {item?.body}
             </Text>
             <Text style={styles.commentMeta}>
@@ -241,7 +297,11 @@ const renderItem = ({ item }: { item: any }) => {
                 style={styles.replyButtonSmall}
                 onPress={() => {
                   setReplyingTo(item.id);
-                  setReplyingToUser(item?.author?.username ?? item?.author?.first_name ?? 'User');
+                  setReplyingToUser(
+                    item?.author?.username ??
+                      item?.author?.first_name ??
+                      'User',
+                  );
                   setNewComment('');
                   setTimeout(() => inputRef.current?.focus(), 100); // focus input
                 }}
@@ -255,7 +315,9 @@ const renderItem = ({ item }: { item: any }) => {
                   onPress={() => toggleReplies(item.id)}
                 >
                   <Text style={styles.viewRepliesText}>
-                    {showRepliesMap[item.id] ? 'Hide replies' : `View replies (${item.comments_count})`}
+                    {showRepliesMap[item.id]
+                      ? 'Hide replies'
+                      : `View replies (${item.comments_count})`}
                   </Text>
                 </TouchableOpacity>
               )}
@@ -267,7 +329,9 @@ const renderItem = ({ item }: { item: any }) => {
         {showRepliesMap[item.id] && (
           <View style={styles.repliesContainer}>
             {repliesMap[item.id]?.length ? (
-              repliesMap[item.id].map((r: any) => <ReplyRow key={r.id} reply={r} />)
+              repliesMap[item.id].map((r: any) => (
+                <ReplyRow key={r.id} reply={r} />
+              ))
             ) : (
               <Text style={styles.noRepliesText}>No replies yet</Text>
             )}
@@ -288,7 +352,9 @@ const renderItem = ({ item }: { item: any }) => {
       }}
     >
       <View style={styles.overlay}>
-        <Animated.View style={[styles.container, { transform: [{ translateY }] }]}>
+        <Animated.View
+          style={[styles.container, { transform: [{ translateY }] }]}
+        >
           <TouchableOpacity
             activeOpacity={0.8}
             style={styles.dragArea}
@@ -307,16 +373,20 @@ const renderItem = ({ item }: { item: any }) => {
             keyExtractor={(item: any) => item.id}
             renderItem={renderItem}
             contentContainerStyle={{ paddingBottom: 40 }}
-            ListEmptyComponent={<Text style={{ color: '#fff' }}>No comments yet</Text>}
+            ListEmptyComponent={
+              <Text style={{ color: '#fff' }}>No comments yet</Text>
+            }
           />
 
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={80}
           >
-              {replyingTo && replyingToUser && (
+            {replyingTo && replyingToUser && (
               <View style={styles.replyBanner}>
-                <Text style={styles.replyBannerText}>Replying to @{replyingToUser}</Text>
+                <Text style={styles.replyBannerText}>
+                  Replying to @{replyingToUser}
+                </Text>
                 <TouchableOpacity
                   onPress={() => {
                     setReplyingTo(null);
@@ -329,9 +399,11 @@ const renderItem = ({ item }: { item: any }) => {
             )}
             <View style={styles.inputRow}>
               <TextInput
-               ref={inputRef}
+                ref={inputRef}
                 style={styles.input}
-                placeholder={replyingTo ? 'Write a reply...' : 'Add a comment...'}
+                placeholder={
+                  replyingTo ? 'Write a reply...' : 'Add a comment...'
+                }
                 placeholderTextColor="#777"
                 value={newComment}
                 onChangeText={setNewComment}
@@ -491,7 +563,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
-    replyBanner: {
+  replyBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#333',
@@ -509,7 +581,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingHorizontal: 6,
   },
-
 });
 
 export default CommentModal;

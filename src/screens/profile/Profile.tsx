@@ -144,9 +144,9 @@ export default function EditProfile({ navigation }: any) {
         'buddy_description',
         supportBuddy === '' ? profileData?.buddy_description || '' : supportBuddy,
       );
-      formData.append('birthday', '2025-09-24');
+      // formData.append('birthday', '2025-09-24');
       formData.append('gender', 'male');
-      formData.append('phone_number', '8744512112');
+      // formData.append('phone_number', '8744512112');
       formData.append(
         'education_level_id',
         educationDropdownValue === ''
@@ -171,7 +171,7 @@ export default function EditProfile({ navigation }: any) {
       console.log('🚀 ~ handleSubmit ~ err:', err);
     }
   };
-  console.log(profileData, 'profiiiiiiiiiiiiiiiiiiii');
+  console.log(profileData?.avatar_url, 'profiiiiiiiiiiiiiiiiiii');
 
   return (
     <>
@@ -204,7 +204,7 @@ export default function EditProfile({ navigation }: any) {
               justifyContent: 'center',
               alignItems: 'center',
             }}
-            onPress={() => navigation.navigate('VisitProfile')}
+            onPress={() => navigation.navigate('Settings')}
           >
             <MaterialIcons name="settings" size={22} color="#000" />
           </TouchableOpacity>
@@ -219,8 +219,8 @@ export default function EditProfile({ navigation }: any) {
         >
           <Image
             source={
-              image
-                ? { uri: image }
+              profileData?.avatar_url
+                ? { uri: profileData?.avatar_url }
                 : require('../../assets/images/defaultfemale.png')
             }
             style={styles.profileImage}

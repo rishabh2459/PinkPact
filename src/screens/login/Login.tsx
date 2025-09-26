@@ -42,7 +42,7 @@ const LoginScreen = () => {
       return;
     }
 
-    setLoading(true)
+    setLoading(true);
     // Build form data
     const formData = new URLSearchParams();
     formData.append('username', email);
@@ -50,7 +50,6 @@ const LoginScreen = () => {
 
     try {
       const url = `https://thepinkpact.onrender.com/v1/auth/login`;
-      console.log('🚀 Sending formData:', formData.toString());
 
       const response = await axios.post(url, formData.toString(), {
         headers: {
@@ -68,6 +67,8 @@ const LoginScreen = () => {
         Alert.alert('Error', 'Invalid response from server');
       }
     } catch (error) {
+      console.log(error.response, 'errorrrrr');
+
       if (axios.isAxiosError(error) && error.response) {
         setError(error.response.data.detail || 'An error occurred');
       } else {
@@ -113,6 +114,8 @@ const LoginScreen = () => {
           />
         </TouchableOpacity>
       </View>
+      {error && <Text style={commonStyles.errorText}>{error}</Text>}
+
 
       {/* Forgot Password */}
       <TouchableOpacity
@@ -130,6 +133,7 @@ const LoginScreen = () => {
         onPress={() => handleLogin()}
         loading={loading}
       />
+
 
       {/* OR divider */}
       <View style={styles.dividerContainer}>
