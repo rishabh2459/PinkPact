@@ -16,6 +16,10 @@ import apiService, { baseURL } from '../../api/apiServices';
 import { Font_Sizes } from '../../utils/fontScaler/fonts';
 import moment from 'moment';
 import CommentModal from '../../coponents/modals/CommentsModal';
+import { SliderBox } from "react-native-image-slider-box";
+import { useFocusEffect } from '@react-navigation/native';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProfile } from '../../coponents/redux/profileSlice';
 
 const Home = ({ navigation }) => {
   const [showReactions, setShowReactions] = useState(false);
@@ -30,39 +34,17 @@ const Home = ({ navigation }) => {
   const [limit] = useState(20);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [profileData, setProfileData] = useState(null);
+  // const [profileData, setProfileData] = useState(null);
+  const dispatch = useDispatch<AppDispatch>();
 
-  const reactions = [
-    { emoji: '👍', label: 'Like' },
-    { emoji: '😊', label: 'Smile' },
-    { emoji: '😢', label: 'Sad' },
-    { emoji: '😂', label: 'Haha' },
-    { emoji: '🤗', label: 'Hug' },
-  ];
+  // ✅ Get profile data from redux
+  const { data: profileData } = useSelector(
+    (state: RootState) => state.profile
+  );
 
-  const fetchFeed = async (pageNumber = 1) => {
-    if (loading || !hasMore) return;
-    setLoading(true);
-    try {
-      const offset = (pageNumber - 1) * limit; // 0, 20, 40, ...
-      const url = `/v1/feed?limit=${limit}&offset=${offset}`;
-      const result = await apiService.get(url);
-
-      if (result?.data?.items?.length > 0) {
-        if (pageNumber === 1) {
-          setFeedData(result.data.items); // First load (replace)
-        } else {
-          setFeedData(prev => [...prev, ...result.data.items]); // Append new
-        }
-      } else {
-        setHasMore(false); // No more data
-      }
-    } catch (err) {
-      console.log('🚀 ~ fetchFeed error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    dispatch(fetchProfile()); // fetch on mount
+  }, [dispatch]);
 
   const LikeUnlikePost = async (id: number) => {
     try {
@@ -102,32 +84,19 @@ const Home = ({ navigation }) => {
     }
   };
 
-  const fetchProfile = async () => {
-    try {
-      const url = `/v1/profile`;
-
-      const result = await apiService.get(url);
-
-      if (result?.data) {
-        setProfileData(result?.data);
-      }
-    } catch (err) {
-      console.log('🚀 ~ ; ~ err:', err);
-    }
-  };
-
   const commentsFetchData = async item => {
     setCommentsModalVisible(true);
     setParentCommentId(item?.id);
     readPost(item?.id);
   };
 
-  useEffect(() => {
-    fetchFeed();
-    fetchProfile();
-  }, []);
-
   const renderPosts = ({ item, index }: { item: any; index: number }) => {
+    const images = Array.isArray(item?.media_path)
+      ? item.media_path
+      : item?.media_path
+      ? [item.media_path]
+      : [];
+
     return (
       <View style={{ marginVertical: 10 }}>
         <TouchableOpacity
@@ -154,10 +123,28 @@ const Home = ({ navigation }) => {
         </TouchableOpacity>
 
         <View>
-          <Image
-            source={{ uri: item?.media_path }}
-            style={{ width: '100%', height: 150, borderRadius: 5 }}
-          />
+          {images.length > 0 && (
+            <SliderBox
+              images={images}
+              sliderBoxHeight={250}
+              dotColor="#FFEE58"
+              inactiveDotColor="#90A4AE"
+              dotStyle={{
+                width: 10,
+                height: 10,
+                borderRadius: 5,
+                marginHorizontal: 3,
+                padding: 0,
+                margin: 0,
+              }}
+              ImageComponentStyle={{ borderRadius: 10, width: '100%' }}
+              resizeMode={'cover'}
+              paginationBoxVerticalPadding={10}
+              autoplay={false}
+              circleLoop={false}
+            />
+          )}
+
           <Text style={styles?.body}>{item?.summary}</Text>
         </View>
 
@@ -214,15 +201,53 @@ const Home = ({ navigation }) => {
     );
   };
 
-  const handleLoadMore = useCallback(() => {
-    if (!loading && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchFeed(nextPage);
-    }
-  }, [loading, hasMore, page]);
+// FETCH FEED
+const fetchFeed = async (pageNumber = 1, append = false) => {
+  if (loading) return;
+  setLoading(true);
 
-  console.log(profileData, 'prooooooooooooooooooooo');
+  try {
+    const offset = (pageNumber - 1) * limit;
+    const url = `/v1/feed?limit=${limit}&offset=${offset}`;
+    const result = await apiService.get(url);
+
+    const newItems = result?.data?.items || [];
+
+    if (newItems.length > 0) {
+      if (append) {
+        setFeedData(prev => [...prev, ...newItems]);
+      } else {
+        setFeedData(newItems);
+      }
+      setHasMore(newItems.length === limit); // only true if exactly full page
+    } else {
+      setHasMore(false);
+    }
+  } catch (err) {
+    console.log('🚀 ~ fetchFeed error:', err);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// REFRESH EVERY TIME SCREEN FOCUSES
+useFocusEffect(
+  useCallback(() => {
+    setPage(1);
+    setHasMore(true);
+    fetchFeed(1, false);
+    fetchProfile();
+  }, [])
+);
+
+// LOAD MORE AT END
+const handleLoadMore = useCallback(() => {
+  if (!loading && hasMore) {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchFeed(nextPage, true);
+  }
+}, [loading, hasMore, page]);
 
   return (
     <View style={styles?.container}>
@@ -254,15 +279,19 @@ const Home = ({ navigation }) => {
           </TouchableOpacity>
         )}
 
-        <View style={styles.textInputContainer}>
+        <TouchableOpacity
+          style={styles.textInputContainer}
+          onPress={() => navigation.navigate('CreatePost')}
+        >
           <TextInput
             style={styles.input}
+            editable={false}
             placeholder="How are you today"
             value={search}
             onChangeText={e => setSearch(e)}
           />
           <SvgIcon name={'Gallery'} width={20} height={20} />
-        </View>
+        </TouchableOpacity>
       </View>
       <FlatList
         data={feedData}
@@ -407,6 +436,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: Font_Sizes?.smaller,
     marginBottom: 4,
+    marginTop: NormalizeSize.getFontSize(6),
   },
   likes: {
     fontSize: Font_Sizes?.smaller,

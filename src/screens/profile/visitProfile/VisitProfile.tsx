@@ -173,13 +173,15 @@ export default function VisitProfile({ navigation, route }: any) {
           </View>
         </View>
 
-        <View>
-          <Image
-            source={{ uri: item?.media_path }}
-            style={{ width: '100%', height: 150, borderRadius: 5 }}
-          />
-          <Text style={styles?.body}>{item?.body}</Text>
-        </View>
+        {item?.media_path && (
+          <View>
+            <Image
+              source={{ uri: item?.media_path }}
+              style={{ width: '100%', height: 150, borderRadius: 5 }}
+            />
+            <Text style={styles?.body}>{item?.body}</Text>
+          </View>
+        )}
 
         {selectedReaction ? selectedReaction : '👍 Like'}
         <View style={styles.actionRow}>

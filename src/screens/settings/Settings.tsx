@@ -7,11 +7,18 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  SafeAreaView,
 } from 'react-native';
 import { useAuth } from '../../hooks/auth/AuthContext';
 import apiService from '../../api/apiServices';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LogoutModal from '../../coponents/modals/LogoutModal';
+import SvgIcon from '../../coponents/icons/Icons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import colors from '../../utils/styles/Colors';
+import NormalizeSize from '../../utils/fontScaler/NormalizeSize';
+import CustomButton from '../../coponents/molecules/GetStartedButton';
+
 // import { Ionicons, MaterialIcons, FontAwesome5, Feather } from "react-native-vector-icons";
 
 const SettingsScreen = ({ navigation }) => {
@@ -40,100 +47,58 @@ const SettingsScreen = ({ navigation }) => {
   return (
     <>
       <ScrollView style={styles.container}>
-        {/* Title */}
-        <Text style={styles.title}>Settings</Text>
-
-        {/* Search */}
-        <View style={styles.searchContainer}>
-          {/* <Ionicons name="search" size={20} color="#888" /> */}
-          <TextInput
-            placeholder="Search"
-            style={styles.searchInput}
-            placeholderTextColor="#888"
-          />
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={{
+              // position: 'relative',
+              //   padding: 10,
+              // backgroundColor: 'white',
+              width: 35,
+              height: 35,
+              borderRadius: 20,
+              // left: 20,
+              justifyContent: 'center',
+              // alignItems: 'center',
+            }}
+            onPress={() => navigation.goBack()}
+          >
+            <MaterialIcons
+              name="arrow-back-ios-new"
+              size={22}
+              color={colors?.white}
+            />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Settings</Text>
         </View>
 
-        {/* Your Account */}
-        <Text style={styles.sectionTitle}>Your Account</Text>
-        <TouchableOpacity style={styles.card}>
-          {/* <Ionicons name="person-circle-outline" size={26} color="#4b4bff" /> */}
-          <View style={styles.cardTextContainer}>
-            <Text style={styles.cardTitle}>Profile Settings</Text>
-            <Text style={styles.cardSubtitle}>
-              Change profile image and profile bio
-            </Text>
-          </View>
-          {/* <Feather name="chevron-right" size={22} color="#555" /> */}
+        {/* Options */}
+        <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('HelpSupport')}>
+          <Text style={styles.optionText}>Help & Support</Text>
+          <SvgIcon name="ArrowRight" width={20} height={20} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card}>
-          {/* <MaterialIcons name="security" size={24} color="#4b4bff" /> */}
-          <View style={styles.cardTextContainer}>
-            <Text style={styles.cardTitle}>Change Password</Text>
-          </View>
-          {/* <Feather name="chevron-right" size={22} color="#555" /> */}
+        <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('SettingsPrivacy')}>
+          <Text style={styles.optionText}>Setting & Privacy</Text>
+          <SvgIcon name="ArrowRight" width={20} height={20} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.card}>
-          {/* <Ionicons name="notifications-outline" size={24} color="#4b4bff" /> */}
-          <View style={styles.cardTextContainer}>
-            <Text style={styles.cardTitle}>Notification Settings</Text>
-            <Text style={styles.cardSubtitle}>
-              Comments, new messages, group..
-            </Text>
+        {/* Logout Button */}
+        <TouchableOpacity style={{ marginTop: NormalizeSize.getFontSize(52), justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{width: '85%'}}>
+          <CustomButton
+            title="Log out"
+            onPress={() => setshowModal(true)}
+            loading={false}
+          />
           </View>
-          {/* <Feather name="chevron-right" size={22} color="#555" /> */}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => setshowModal(true)}
-        >
-          {/* <Ionicons name="notifications-outline" size={24} color="#4b4bff" /> */}
-          <View style={styles.cardTextContainer}>
-            <Text style={styles.cardTitle}>Logout</Text>
-          </View>
-          {/* <Feather name="chevron-right" size={22} color="#555" /> */}
-        </TouchableOpacity>
-
-        {/* Privacy Settings */}
-        <Text style={styles.sectionTitle}>Privacy settings</Text>
-        <TouchableOpacity style={styles.card}>
-          {/* <Ionicons name="time-outline" size={24} color="#4b4bff" /> */}
-          <View style={styles.cardTextContainer}>
-            <Text style={styles.cardTitle}>Session Time-out</Text>
-          </View>
-          {/* <Feather name="chevron-right" size={22} color="#555" /> */}
-        </TouchableOpacity>
-
-        {/* Support */}
-        <Text style={styles.sectionTitle}>Support</Text>
-        <TouchableOpacity style={styles.card}>
-          {/* <Ionicons name="help-circle-outline" size={24} color="#4b4bff" /> */}
-          <View style={styles.cardTextContainer}>
-            <Text style={styles.cardTitle}>Help Center</Text>
-          </View>
-          {/* <Feather name="chevron-right" size={22} color="#555" /> */}
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.card}>
-          {/* <FontAwesome5 name="key" size={20} color="#4b4bff" /> */}
-          <View style={styles.cardTextContainer}>
-            <Text style={styles.cardTitle}>Recovery Code</Text>
-          </View>
-          {/* <Feather name="chevron-right" size={22} color="#555" /> */}
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.card}>
-          {/* <Ionicons name="document-text-outline" size={24} color="#4b4bff" /> */}
-          <View style={styles.cardTextContainer}>
-            <Text style={styles.cardTitle}>Privacy Policy</Text>
-          </View>
-          {/* <Feather name="chevron-right" size={22} color="#555" /> */}
         </TouchableOpacity>
       </ScrollView>
       {showModal && (
         <LogoutModal
+        title="Log Out"
+        sure="Logout"
+        confirmButtonText="Log Out"
           isVisible={showModal}
           onRetry={handleLogOut}
           onClose={handleCancel}
@@ -148,9 +113,44 @@ export default SettingsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#faf7ff',
+    backgroundColor: '#000000',
     paddingHorizontal: 16,
     paddingTop: 40,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: NormalizeSize.getFontSize(32),
+    // justifyContent: "space-between",
+  },
+  headerTitle: {
+    fontSize: NormalizeSize.getFontSize(24),
+    fontWeight: '700',
+    color: '#fff',
+  },
+  option: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#222',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 15,
+  },
+  optionText: {
+    color: '#fff',
+    fontSize: NormalizeSize.getFontSize(18),
+    fontWeight: '400',
+  },
+  logoutBtn: {
+    paddingVertical: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  logoutText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   title: {
     fontSize: 22,

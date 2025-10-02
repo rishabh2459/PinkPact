@@ -22,11 +22,13 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Entypo from 'react-native-vector-icons/Entypo';
 import apiService from '../../api/apiServices';
 import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import { useDispatch } from 'react-redux';
+import { updateProfile } from '../../coponents/redux/profileSlice';
 
 export default function EditProfile({ navigation }: any) {
   const [image, setImage] = useState<string | null>(null);
   const [profileData, setProfileData] = useState(null);
-
+const dispatch = useDispatch();
   const [bio, setBio] = useState('');
   const [generation, setGeneration] = useState('');
   const [education, setEducation] = useState('');
@@ -49,7 +51,7 @@ export default function EditProfile({ navigation }: any) {
       maxWidth: 500,
     });
     if (result.assets && result.assets.length > 0) {
-      setImage(result.assets[0].uri);
+      setImage(result.assets[0]);
     }
     setImagePickerModal(false);
   };
@@ -62,7 +64,7 @@ export default function EditProfile({ navigation }: any) {
       saveToPhotos: true,
     });
     if (result.assets && result.assets.length > 0) {
-      setImage(result.assets[0].uri);
+      setImage(result.assets[0]);
     }
     setImagePickerModal(false);
   };
@@ -123,55 +125,46 @@ export default function EditProfile({ navigation }: any) {
     fetchProfile();
   }, []);
 
- const handleSubmit = async () => {
+const handleSubmit = async () => {
     try {
-      const url = `/v1/profile`;
-
       const formData = new FormData();
       formData.append('first_name', profileData?.first_name || '');
       formData.append('last_name', profileData?.last_name || '');
 
-      // ✅ Handle avatar upload if user selected new image
-        formData.append('avatar_url', {
-          uri: image,
-          name: 'profile.jpg',
-          type: 'image/jpeg',
+      if (image) {
+        formData.append('avatar', {
+          uri: image.uri,
+          name: image.fileName || 'profile.jpg',
+          type: image.type || 'image/jpeg',
         } as any);
-      
+      }
 
       formData.append('bio', bio === '' ? profileData?.bio || '' : bio);
       formData.append(
         'buddy_description',
-        supportBuddy === '' ? profileData?.buddy_description || '' : supportBuddy,
+        supportBuddy === '' ? profileData?.buddy_description || '' : supportBuddy
       );
-      // formData.append('birthday', '2025-09-24');
-      formData.append('gender', 'male');
-      // formData.append('phone_number', '8744512112');
       formData.append(
         'education_level_id',
-        educationDropdownValue === ''
-          ? profileData?.education_level_id || ''
-          : educationDropdownValue,
+        educationDropdownValue === '' ? profileData?.education_level_id || '' : educationDropdownValue
       );
       formData.append(
         'generation_id',
-        generationDropdownValue === ''
-          ? profileData?.generation_id || ''
-          : generationDropdownValue,
+        generationDropdownValue === '' ? profileData?.generation_id || '' : generationDropdownValue
       );
 
-      const result = await apiService.put(url, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      // ✅ Dispatch redux action instead of direct API
+      const result = await dispatch(updateProfile(formData)).unwrap();
 
-      if (result?.data) {
+      if (result) {
+        Alert.alert('✅ Success', 'Profile updated successfully');
         navigation.navigate('Home');
       }
     } catch (err) {
       console.log('🚀 ~ handleSubmit ~ err:', err);
+      Alert.alert('❌ Error', 'Failed to update profile');
     }
   };
-  console.log(profileData?.avatar_url, 'profiiiiiiiiiiiiiiiiiii');
 
   return (
     <>
@@ -219,8 +212,10 @@ export default function EditProfile({ navigation }: any) {
         >
           <Image
             source={
-              profileData?.avatar_url
-                ? { uri: profileData?.avatar_url }
+              image
+                ? { uri: image.uri } // ✅ use uri from picker
+                : profileData?.avatar_url
+                ? { uri: profileData.avatar_url }
                 : require('../../assets/images/defaultfemale.png')
             }
             style={styles.profileImage}

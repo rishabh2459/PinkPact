@@ -20,6 +20,9 @@ import VisitProfile from '../screens/profile/visitProfile/VisitProfile';
 import FriendList from '../screens/friendList/FriendList';
 import SettingsScreen from '../screens/settings/Settings';
 import ChangePassword from '../screens/changePassword/ChangePassword';
+import SettingsPrivacy from '../screens/settings/SettingsPrivacy';
+import HelpSupport from '../screens/settings/HelpSupport';
+import CreatePost from '../screens/createPost/CreatePost';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -103,6 +106,9 @@ const AppStack = () => (
     <Stack.Screen name="VisitProfile" component={VisitProfile} />
     <Stack.Screen name="FriendList" component={FriendList} />
     <Stack.Screen name="Settings" component={SettingsScreen} />
+    <Stack.Screen name="SettingsPrivacy" component={SettingsPrivacy} />
+    <Stack.Screen name="HelpSupport" component={HelpSupport} />
+    <Stack.Screen name="CreatePost" component={CreatePost} />
     <Stack.Screen name="ChangePassword" component={ChangePassword} />
 
   </Stack.Navigator>

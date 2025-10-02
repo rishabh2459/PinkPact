@@ -96,9 +96,6 @@ const CommentModal: React.FC<CommentModalProps> = ({
     fetchProfile();
   }, []);
 
-  console.log(localComments, 'localcomments========');
-  console.log(profileData, 'profileeeeeeeeeeeeeeeee');
-
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 5,

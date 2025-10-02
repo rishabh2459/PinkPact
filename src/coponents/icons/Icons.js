@@ -24,6 +24,10 @@ import SendButton from '../../assets/svgs/sendButton.svg';
 import SearchIcon from '../../assets/svgs/searchIcon.svg';
 import LikeGrey from '../../assets/svgs/likeGrey.svg';
 import LikedIcon from '../../assets/svgs/likedIcon.svg';
+import ArrowRight from '../../assets/svgs/arrowRight.svg';
+import Cross from '../../assets/svgs/cross.svg';
+import CameraWhite from '../../assets/svgs/cameraWhite.svg';
+import deselectCross from '../../assets/svgs/delectCross.svg';
 
 
 // Map icon names to SVG components
@@ -52,8 +56,11 @@ const icons = {
   SendButton,
   SearchIcon,
   LikeGrey,
-  LikedIcon
-
+  LikedIcon,
+  ArrowRight,
+  Cross,
+  CameraWhite,
+  deselectCross,
 };
 
 const SvgIcon = ({ name, width, height, ...props }) => {

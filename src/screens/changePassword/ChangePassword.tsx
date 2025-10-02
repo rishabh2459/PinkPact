@@ -11,64 +11,82 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import colors from '../../utils/styles/Colors';
 import CustomButton from '../../coponents/molecules/GetStartedButton';
+import apiService from '../../api/apiServices';
+import { commonStyles } from '../../coponents/styles/CommonStyles';
+import { useAuth } from '../../hooks/auth/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const ChangePassword = () => {
+const ChangePassword = ({ navigation }) => {
   const [isResetStage, setIsResetStage] = useState(false); // false = forgot, true = reset
   const [email, setEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const [oldPassword, setOldPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const { logout } = useAuth();
 
-  const handleSendResetLink = () => {
-    if (!email) {
-      Alert.alert('Error', 'Please enter your email');
-      return;
-    }
-    console.log('Reset link sent to:', email);
-    // Call API for sending reset link here...
-    setIsResetStage(true); // move to reset screen after email sent
-  };
 
-  const handlePasswordReset = () => {
-    if (!newPassword || !confirmPassword) {
+  console.log('current', confirmPassword);
+
+  const handlePasswordReset = async () => {
+    if (!oldPassword || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-    if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
+
+    const body = {
+      current_password: oldPassword,
+      new_password: confirmPassword,
+    };
+    setLoading(true)
+    try {
+      const url = `/v1/auth/change_password`;
+
+      const result = await apiService.post(url, body);
+
+      if (result?.data) {
+        console.log(result.data, 'dataaaaaaaaaaaa change password');
+        logout()
+        AsyncStorage.clear();
+        setLoading(false)
+        // navigation.goBack();
+      }
+    } catch (err) {
+      console.log('🚀 ~ ; ~ err:', err.response.data.detail);
+      setError(err.response.data.detail[0].msg);
+      setLoading(false)
     }
-    console.log('Password reset successfully:', newPassword);
-    // Call API for resetting password here...
-    Alert.alert('Success', 'Password has been reset successfully!');
   };
 
   return (
     <View style={styles.container}>
       <>
         {/* Reset Password Screen */}
-        <Text style={styles.title}>Reset password</Text>
+        <Text style={styles.title}>Change password</Text>
         <Text style={styles.subtitle}>
           Set a new password to continue your journey
         </Text>
 
         <TextInput
           style={styles.input}
-          placeholder="New password"
+          placeholder="Current password"
           placeholderTextColor={colors?.placeholder}
           secureTextEntry
-          value={newPassword}
-          onChangeText={setNewPassword}
+          value={oldPassword}
+          onChangeText={setOldPassword}
         />
         <TextInput
           style={styles.input}
-          placeholder="Confirm password"
+          placeholder="New password"
           placeholderTextColor={colors?.placeholder}
           secureTextEntry
           value={confirmPassword}
           onChangeText={setConfirmPassword}
         />
+        {error && <Text style={[commonStyles.errorText, {marginBottom: 20, bottom: 10}]}>{error}</Text>}
 
-        <CustomButton title="Submit" onPress={() => handlePasswordReset()} />
+        <CustomButton title="Submit" loading={loading} onPress={() => handlePasswordReset()} />
       </>
     </View>
   );

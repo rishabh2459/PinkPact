@@ -9,12 +9,18 @@ interface LogoutModalProps {
   isVisible: boolean
   onRetry: () => void
   onClose: () => void
+  title: string
+  sure: string
+  confirmButtonText: string
 }
 
 const LogoutModal: React.FC<LogoutModalProps> = ({
   isVisible,
   onRetry,
   onClose,
+  title,
+  sure,
+  confirmButtonText,
 }) => {
   return (
     <Modal animationType="slide" transparent={true} visible={isVisible}>
@@ -29,11 +35,11 @@ const LogoutModal: React.FC<LogoutModalProps> = ({
               }}
             >
               <SvgIcon name="logoutIconBlack" width={28} height={28} />
-              <Text style={styles.title}>Log Out</Text>
+              <Text style={styles.title}>{title}</Text>
             </View>
 
             <Text style={styles.message}>
-              Are you sure you want to Log Out?
+              Are you sure you want to {sure}?
             </Text>
           </View>
 
@@ -48,7 +54,7 @@ const LogoutModal: React.FC<LogoutModalProps> = ({
               ]}
               onPress={onRetry}
             >
-              <Text style={[styles.btnTxt, { color: '#E4483B',marginTop: -1 }]}>Log Out</Text>
+              <Text style={[styles.btnTxt, { color: '#E4483B',marginTop: -1 }]}>{confirmButtonText}</Text>
             </TouchableOpacity>
           </View>
         </View>
